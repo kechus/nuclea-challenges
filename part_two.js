@@ -1,5 +1,6 @@
 import { db } from "./index.js"
 import axios from "axios";
+import { externalError } from "./middleware.js";
 
 const QUOTE_API_PATH = 'https://programming-quotes-api.herokuapp.com/quotes/random'
 
@@ -14,27 +15,36 @@ class Quote {
 
 const fetchQuote = async (req, res) => {
   const quote = await fetchQuoteFromAPI()
-  if (quote == null) {
+  if (!quote)
     return res.status(500).send()
-  }
+
   const quoteWithDate = new Quote(quote.author, quote.id, quote.en)
-  await addQuoteToDB({ ...quoteWithDate })
+  const status = await addQuoteToDB({ ...quoteWithDate })
+  if (!status)
+    return res.status(500).send()
+
   res.status(201).json(quoteWithDate)
 }
 
 const fetchQuoteFromAPI = async () => {
-  const quote_res = await axios.get(QUOTE_API_PATH)
-  if (quote_res.status !== 200) {
-    return null
-  }
+  const quote_res = await axios.get(QUOTE_API_PATH).catch(externalError)
+  if (!quote_res)
+    return false
+
+  if (quote_res.status !== 200)
+    return false
+
   return quote_res.data
 }
 
 const addQuoteToDB = async (quoteToAdd) => {
   const authorRef = db.collection('authors').doc(quoteToAdd.author)
   delete quoteToAdd["author"]
-  const author = await authorRef.get()
   const updatedQuotes = { quotes: [] }
+  const author = await authorRef.get().catch(externalError)
+  if (!author)
+    return false
+
   if (author.exists) {
     const authorQuotes = author.data().quotes
     if (quoteExistsInAuthorQuotes(authorQuotes, quoteToAdd))
@@ -44,17 +54,24 @@ const addQuoteToDB = async (quoteToAdd) => {
   } else {
     updatedQuotes.quotes = [quoteToAdd]
   }
-  await authorRef.set(updatedQuotes)
+
+  try {
+    await authorRef.set(updatedQuotes)
+    return true
+  } catch (error) {
+    externalError(error)
+    return false
+  }
 }
 
 const quoteExistsInAuthorQuotes = (authorQuotes, quoteToAdd) => {
-  console.log(authorQuotes, quoteToAdd)
   return authorQuotes.find(quote => quote.id == quoteToAdd.id)
-
 }
 
 const fetchQuotes = async (req, res) => {
-  const authors = await db.collection('authors').get();
+  const authors = await db.collection('authors').get().catch(externalError)
+  if (!authors)
+    return res.status(500).send()
   const sortedAuthors = orderQuotesFromAuthorsByDate(authors)
   res.status(200).json(sortedAuthors)
 }

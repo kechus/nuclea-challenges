@@ -27,4 +27,11 @@ const writeInLog = (log) => {
   })
 }
 
-export { validateInputs, logger }
+const externalError = (e) => {
+  const current_datetime = new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City' });
+  const log = `[${current_datetime}] ${e} `;
+  console.log(log);
+  writeInLog(log)
+}
+
+export { validateInputs, logger, externalError }

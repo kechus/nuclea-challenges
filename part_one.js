@@ -1,8 +1,11 @@
 import { db } from "./index.js"
+import { externalError } from "./middleware.js"
 
 const alpha = async (req, res) => {
   const ordered = orderObjectByKeys(req.body)
-  await insertOrderedObjectoToDB(ordered)
+  const status = await insertOrderedObjectoToDB(ordered)
+  if (!status)
+    return res.status(500).send()
   res.status(201).json(ordered)
 }
 
@@ -16,8 +19,14 @@ const orderObjectByKeys = (obj) => {
 }
 
 const insertOrderedObjectoToDB = async (obj) => {
-  const docRef = db.collection('alphas').doc(new Date().toISOString())
-  await docRef.set(obj)
+  try {
+    const docRef = db.collection('alphas').doc(new Date().toISOString())
+    await docRef.set(obj)
+    return true
+  } catch (error) {
+    externalError(error)
+    return false
+  }
 }
 
 const flatten = (req, res) => {
