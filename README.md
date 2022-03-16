@@ -21,3 +21,7 @@ $ npm start
 ## Como utilizar (Heroku)
 
 Hacer las peticiones a https://nuclea-challenges.herokuapp.com/ agregando el endpoint 
+Por ejemplo 
+
+```bash
+curl -X POST https://nuclea-challenges.herokuapp.com/quote
