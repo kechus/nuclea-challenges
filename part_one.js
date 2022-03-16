@@ -46,4 +46,4 @@ const flattenObject = (obj) => {
   return arrayFreeObject
 }
 
-export { alpha, flatten }
+export { alpha, flatten, orderObjectByKeys }
